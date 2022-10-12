@@ -2,25 +2,46 @@ import socket
 import threading
 import random
 import json
+import hashlib
 
 class Server:
     
     def send(self, client_socket):
+        
         while True:
+            data={'User':"Server"}
             message = input()
+
             if message == 'quit':
-                client_socket.send('quit'.encode('utf-8'))
+                data['Message'] = str('quit')
+                
+                send_data = json.dumps(data)
+                client_socket.send(send_data.encode('utf-8')) 
                 break
-            client_socket.send(message.encode('utf-8')) 
+            else:
+                data['Message'] = str(message)
+            
+                word = hashlib.sha256(message.encode('utf-8')).hexdigest()
+                data['Hash'] = word
+            
+                send_data = json.dumps(data)
+                client_socket.send(send_data.encode('utf-8')) 
         #client_socket.close()
 
     def recv(self, client_socket):
         while True:
             try:
-                data = client_socket.recv(1024)
-                if data.decode('utf-8') == 'quit':
+
+                data = json.loads(client_socket.recv(1024).decode('utf-8'))
+                
+                if data['Message'] == 'quit':
                     break
-                print('%s: %s' %("client",data.decode('utf-8'))) 
+                else:
+                    if(data['Hash'] == hashlib.sha256(data['Message'].encode('utf-8')).hexdigest()):
+                        print('%s: %s' %(data['User'], data['Message']))
+                    else:
+                        print("메시지가 변조되었습니다.")
+
             except Exception as e:
                 print(e)
                 break
