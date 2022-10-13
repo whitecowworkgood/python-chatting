@@ -1,3 +1,9 @@
+'''
+@ Class Server
+@ Date 2022/10/13
+@ Auther whitocowworkgood
+'''
+
 import socket
 import threading
 import random
