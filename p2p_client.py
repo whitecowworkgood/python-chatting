@@ -1,8 +1,15 @@
+'''
+@ Class Client
+@ Date 2022/10/13
+@ Auther whitocowworkgood
+'''
+
 import socket
 import random
 import threading
 import json
 import hashlib
+
 class Client:
     user = random.randrange(1000, 13000)
     def send(self, client_socket):
