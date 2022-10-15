@@ -21,7 +21,7 @@ import make_key
 
 class Client:
     def __init__(self):
-        #self.user = random.randrange(1000, 13000)
+        self.user = random.randrange(1000, 13000)
         self.data={'User':str(self.user)}
         self.server_pubkey=None
 
