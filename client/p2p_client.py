@@ -12,6 +12,7 @@ import hashlib
 import os
 import sys
 import shutil
+import time
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from Cryptodome.PublicKey import RSA
@@ -22,6 +23,7 @@ import make_key
 class Client:
     def __init__(self):
         self.user = random.randrange(1000, 13000)
+
         self.data={'User':str(self.user)}
         self.server_pubkey=None
 
@@ -96,10 +98,11 @@ class Client:
         if os.path.isfile('./client/%s_pubkey.pem'%('server')):
             self.server_pubkey =  make_key.read_pub_pem('./client', 'server')
         else:
-            filename = '%s_pubkey.pem' % (self.user)
-            src = './client/'
-            dir = './server/'
+            filename = '%s_pubkey.pem' % ('server')
+            src = './server/'
+            dir = './client/'
             shutil.copy(src+filename, dir+filename)
+            time.sleep(2)
             self.server_pubkey =  make_key.read_pub_pem('./client', 'server')
 
     def send(self):
@@ -145,6 +148,7 @@ class Client:
     def run(self):
         
         self.generate_keyset()
+        time.sleep(2)
         self.public_key_share()
 
         receiver = threading.Thread(target=self.recv, args=())
