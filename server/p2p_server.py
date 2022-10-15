@@ -1,4 +1,3 @@
-
 '''
 @ Class Server
 @ Date 2022/10/15
@@ -13,6 +12,7 @@ import hashlib
 import os
 import sys
 import shutil
+import time
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
@@ -106,10 +106,12 @@ class Server:
         if os.path.isfile('./server/%s_pubkey.pem'%(self.client_name)):
            self.client_pubkey =  make_key.read_pub_pem('./server', self.client_name)
         else:
-            filename = '%s_pubkey.pem' % ('server')
-            src = './server/'
-            dir = './client/'
+            filename = '%s_pubkey.pem' % (self.client_name)
+            src = './client/'
+            dir = './server/'
             shutil.copy(src+filename, dir+filename)
+
+            time.sleep(2)
             self.client_pubkey =  make_key.read_pub_pem('./server', self.client_name)
     
     def send(self):
@@ -141,8 +143,6 @@ class Server:
             try:
 
                 data = json.loads(self.client_socket.recv(1024).decode('utf-8'))
-
-
                 
                 if make_key.decrypt_msg(self.server_prikey, data['Message']) == 'quit':
                     break
@@ -159,6 +159,7 @@ class Server:
     def run(self):
         
         self.generate_keyset()
+        time.sleep(2)
         self.public_key_share()
 
         sender = threading.Thread(target=self.send, args=())
