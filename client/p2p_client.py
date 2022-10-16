@@ -28,7 +28,13 @@ class Client:
     def __init__(self):
 
         self.client_path='./client/key'
-        self.user = str(input('사용자 명을 입력해 주세요'))
+
+        if os.path.isdir(self.client_path):
+            pass
+        else:
+            os.makedirs(self.client_path)
+        
+        self.user = str(input('사용자 명을 입력해 주세요: '))
 
         self.client_pri_file = self.client_path+'/'+self.user+'_prikey.pem'
         self.client_pub_file = self.client_path+'/'+self.user+'_pubkey.pem'
