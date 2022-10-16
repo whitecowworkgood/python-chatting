@@ -1,6 +1,6 @@
 '''
 @ Class Client
-@ Date 2022/10/16
+@ Date 2022/10/15
 @ Auther whitocowworkgood
 '''
 #----------------import ----------------------------------------------------------
@@ -13,80 +13,95 @@ import os
 import sys
 import shutil
 import time
-import base64
-import make_key
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Cipher import PKCS1_OAEP
-
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+import base64
+import make_key
 #----------------END import -------------------------------------------------------
 
 class Client:
 
     # Start __init__-----------------------------
     def __init__(self):
-        self.user = random.randrange(1000, 13000)
 
-        self.data={'User':str(self.user)}
+        self.client_path='./client'
+        self.user = str(random.randrange(1000, 2000))
+
+        self.client_pri_file = self.client_path+'/'+self.user+'_prikey.pem'
+        self.client_pub_file = self.client_path+'/'+self.user+'_pubkey.pem'
+
+
+        self.data={'User':self.user}
         self.server_pubkey=None
+
+        
+        print("----------[System] Socket Start----------")
 
         HOST = str(input("연결할 서버 주소를 입력하세요: "))
         PORT = int(input("연결할 서버 포트를 입력하세요: "))
         
         self.client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
+
         self.client_socket.connect((HOST, PORT))
 
         #서로의 이름 전송
-        self.client_socket.send(str(self.user).encode('utf-8'))
+        self.client_socket.send(self.user.encode('utf-8'))
         self.server_name = self.client_socket.recv(1024).decode('utf-8')
+
+        print("----------[System] Socket Connect----------")
     #End __init__----------------------------------
         
+
+
     def generate_keyset(self):
         
-        if os.path.isfile("./client/%s_prikey.pem" % (str(self.user))):
-            self.client_prikey = make_key.read_pri_pem('./client', str(self.user))
+        if os.path.isfile(self.client_pri_file):
+            self.client_prikey = make_key.read_pri_pem(self.client_path, self.user)
             
-            if os.path.isfile("./client/%s_pubkey.pem" % (str(self.user))):
+            if os.path.isfile(self.client_pub_file):
 
-                os.remove("./client/%s_pubkey.pem" % (str(self.user)))
+                os.remove(self.client_pub_file)
                 self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key('./client', str(self.user), self.client_pubkey)
+                make_key.save_pub_key(self.client_path, self.user, self.client_pubkey)
             
             else:
                 self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key('./client',str(self.user), self.client_pubkey )
+                make_key.save_pub_key(self.client_path,self.user, self.client_pubkey )
 
         else:
-            make_key.pri_key_gen('./client', str(self.user))
-            self.client_prikey = make_key.read_pri_pem('./client', str(self.user))
+            make_key.pri_key_gen(self.client_path, self.user)
+            self.client_prikey = make_key.read_pri_pem(self.client_path, self.user)
             
-            if os.path.isfile("./client/%s_pubkey.pem" % (str(self.user))):
+            if os.path.isfile(self.client_pub_file):
 
-                os.remove("./client/%s_pubkey.pem" % (str(self.user)))
+                os.remove(self.client_pub_file)
                 self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key('./client', str(self.user), self.client_pubkey)
+                make_key.save_pub_key(self.client_path, self.user, self.client_pubkey)
             else:
 
                 self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key('./client', str(self.user), self.client_pubkey)
+                make_key.save_pub_key(self.client_path, self.user, self.client_pubkey)
     
     def public_key_share(self):
 
         self.server_pubkey = self.client_socket.recv(1024)
+        
         self.server_pubkey = RSA.import_key(self.server_pubkey)
 
-        self.client_socket.send(bytes(make_key.share_read_pub('./client', self.user), encoding='utf-8'))
-        
+        self.client_socket.send(bytes(make_key.share_read_pub(self.client_path, self.user), encoding='utf-8'))
+
     def send(self):
         while True:
             
             message = input()
-            if message == 'quit':
+            if message == '/quit':
                 self.data['Message'] =  make_key.encrypt_msg(self.server_pubkey, message)
                 
                 send_data = json.dumps(self.data)
-                self.client_socket.send(send_data.encode('utf-8')) 
+                self.client_socket.send(send_data.encode('utf-8'))
+                print("----------[System] Sender Exit----------")
                 break
             else:
                 self.data['Message'] =  make_key.encrypt_msg(self.server_pubkey, message)
@@ -97,15 +112,14 @@ class Client:
                 send_data = json.dumps(self.data)
 
                 self.client_socket.send(send_data.encode('utf-8')) 
-        #client_socket.close()
 
     def recv(self):
         while True:
             try:
                 data = json.loads(self.client_socket.recv(1024).decode('utf-8'))
                 
-                if  make_key.decrypt_msg(self.client_prikey, data['Message']) == 'quit':
-                    #client_socket.send('quit'.encode('utf-8'))
+                if  make_key.decrypt_msg(self.client_prikey, data['Message']) == '/quit':
+                    print("----------[System] Recever Exit----------")
                     break
                 else:
                     if(data['Hash'] == hashlib.sha256( make_key.decrypt_msg(self.client_prikey, data['Message']).encode('utf-8')).hexdigest()):
@@ -116,7 +130,7 @@ class Client:
             except Exception as e:
                 print(e)
                 break
-        #client_socket.close()
+
 
     def run(self):
         
@@ -129,6 +143,8 @@ class Client:
 
         sender = threading.Thread(target=self.send, args=())
         sender.start()
+        
+        
         
 if __name__ == '__main__':
    
