@@ -1,6 +1,6 @@
 '''
 @ Class Server
-@ Date 2022/10/16
+@ Date 2022/10/15
 @ Auther whitocowworkgood
 '''
 #----------------import ----------------------------------------------------------
@@ -13,25 +13,32 @@ import os
 import sys
 import shutil
 import time
-import base64
-import make_key
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Cipher import PKCS1_OAEP
-
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+import base64
+import make_key
 #----------------END import -------------------------------------------------------
 class Server:
     
     # Start __init__-----------------------------
     def __init__(self):
-        self.data={'User':"Server"}
+
+        self.server_path='./server'
+        self.server_name= str(random.randrange(0, 1000))
+
+        self.server_pri_file = self.server_path+'/'+self.server_name+'_prikey.pem'
+        self.server_pub_file = self.server_path+'/'+self.server_name+'_pubkey.pem'
+
+        self.data={'User':self.server_name}
         self.client_name = None
 
         self.client_pubkey = None
         self.server_prikey = None
         self.server_pubkey = None
-
+        
         #Make Socket----------------------------------------------------
         port = random.randrange(9999, 13000)
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,62 +46,65 @@ class Server:
         self.server_socket.bind(('127.0.0.1',port)) 
         self.server_socket.listen(5)
         #End Make Socket----------------------------------------------------
+        print("----------[System] Socket Start----------")
 
         print('서버 작동: 연결 포트 -> '+ str(port))
         print('연결 대기중.....')
         self.client_socket, addr = self.server_socket.accept()
-        print("연결 완료!!")
+
+        print("----------[System] Socket Connect----------")
 
         #서로의 이름 수신
         self.client_name = self.client_socket.recv(1024).decode('utf-8')
         #print(self.client_name)
-        self.client_socket.send('server'.encode('utf-8'))
+        self.client_socket.send(self.server_name.encode('utf-8'))
 
         #End __init__----------------------------------
 
+        
+
     def generate_keyset(self):
+
         
         #개인키가 있으면 읽는 부분
-        if os.path.isfile("./server/%s_prikey.pem" % ("server")):
+        if os.path.isfile(self.server_pri_file):
             
-            self.server_prikey = make_key.read_pri_pem('./server', "server")
+            self.server_prikey = make_key.read_pri_pem(self.server_path, self.server_name)
 
             #공개키가 있으면 삭제 후 다시 생성
-            if os.path.isfile("./server/%s_pubkey.pem" % ("server")):
+            if os.path.isfile(self.server_pub_file):
 
-                os.remove("./server/%s_pubkey.pem" % ("server"))
+                os.remove(self.server_pub_file)
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key('./server', 'server', self.server_pubkey)
+                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
             
             #공개키가 없으면 생성
             else:
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key('./server', 'server', self.server_pubkey)
+                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
 
         #개인키가 없으면 생성 후 읽는 기능
         else:
-            make_key.pri_key_gen('./server', "server")
-            self.server_prikey = make_key.read_pri_pem('./server', "server")
+
+            make_key.pri_key_gen(self.server_path, self.server_name)
+            self.server_prikey = make_key.read_pri_pem(self.server_path, self.server_name)
 
             #공개키가 있으면 삭제 후 다시 생성
-            if os.path.isfile("./server/%s_pubkey.pem" % ("server")):
+            if os.path.isfile(self.server_pub_file):
 
-                os.remove("./server/%s_pubkey.pem" % ("server"))
+                os.remove(self.server_pub_file)
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key('./server', 'server', self.server_pubkey)
+                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
             
             #공개키가 없으면 생성
             else:
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key('./server', 'server', self.server_pubkey)
+                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
 
     
     def public_key_share(self):
-        #원래는 소캣으로 해야하지만 우선 이렇게 만든다.
-        #print(self.server_pubkey)
-        
 
-        self.client_socket.send(bytes(make_key.share_read_pub('./server', "server"), encoding='utf-8'))
+        self.client_socket.send(bytes(make_key.share_read_pub(self.server_path, self.server_name), encoding='utf-8'))
 
         self.client_pubkey = self.client_socket.recv(1024)
         self.client_pubkey = RSA.import_key(self.client_pubkey)
@@ -105,12 +115,13 @@ class Server:
             
             message = input()
 
-            if message == 'quit':
+            if message == '/quit':
                 
                 self.data['Message'] = make_key.encrypt_msg(self.client_pubkey, message)
                 
                 send_data = json.dumps(self.data)
                 self.client_socket.send(send_data.encode('utf-8')) 
+                print("----------[System] Sender Exit----------")
                 break
             else:
 
@@ -121,7 +132,7 @@ class Server:
             
                 send_data = json.dumps(self.data)
                 self.client_socket.send(send_data.encode('utf-8')) 
-        #client_socket.close()
+
 
     def recv(self):
         while True:
@@ -129,7 +140,8 @@ class Server:
 
                 data = json.loads(self.client_socket.recv(1024).decode('utf-8'))
                 
-                if make_key.decrypt_msg(self.server_prikey, data['Message']) == 'quit':
+                if make_key.decrypt_msg(self.server_prikey, data['Message']) == '/quit':
+                    print("----------[System] Recever Exit----------")
                     break
                 else:
                     if(data['Hash'] == hashlib.sha256(make_key.decrypt_msg(self.server_prikey, data['Message']).encode('utf-8')).hexdigest()):
@@ -140,7 +152,7 @@ class Server:
             except Exception as e:
                 print(e)
                 break
-        #client_socket.close()
+
     def run(self):
         
         self.generate_keyset()
@@ -152,6 +164,7 @@ class Server:
 
         receiver = threading.Thread(target=self.recv, args=())
         receiver.start()
+
 
 if __name__ == '__main__':
     server = Server()
