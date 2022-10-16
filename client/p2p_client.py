@@ -1,6 +1,6 @@
 '''
 @ Class Client
-@ Date 2022/10/15
+@ Date 2022/10/16
 @ Auther whitocowworkgood
 '''
 #----------------import ----------------------------------------------------------
@@ -13,11 +13,12 @@ import os
 import sys
 import shutil
 import time
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+import base64
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Cipher import PKCS1_OAEP
-import base64
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import make_key
 #----------------END import -------------------------------------------------------
 
@@ -26,8 +27,8 @@ class Client:
     # Start __init__-----------------------------
     def __init__(self):
 
-        self.client_path='./client'
-        self.user = str(random.randrange(1000, 2000))
+        self.client_path='./client/key'
+        self.user = str(input('사용자 명을 입력해 주세요'))
 
         self.client_pri_file = self.client_path+'/'+self.user+'_prikey.pem'
         self.client_pub_file = self.client_path+'/'+self.user+'_pubkey.pem'
@@ -39,6 +40,10 @@ class Client:
         self.client_prikey = None
         self.server_pubkey = None
         
+    #End __init__----------------------------------
+        
+    def make_socket(self):
+
         print("----------[System] Socket Start----------")
 
         HOST = str(input("연결할 서버 주소를 입력하세요: "))
@@ -52,9 +57,6 @@ class Client:
         self.server_name = self.client_socket.recv(1024).decode('utf-8')
 
         print("----------[System] Socket Connect----------")
-    #End __init__----------------------------------
-        
-
 
     def generate_keyset(self):
         
@@ -70,8 +72,7 @@ class Client:
                 self.client_pubkey = make_key.pub_key_gen(self.client_pub_file,self.client_prikey)
 
         else:
-            make_key.pri_key_gen(self.client_pri_file)
-            self.client_prikey = make_key.read_pri_pem(self.client_pri_file)
+            self.client_prikey = make_key.pri_key_gen(self.client_pri_file)
             
             if os.path.isfile(self.client_pub_file):
 
@@ -130,9 +131,10 @@ class Client:
 
 
     def run(self):
-        
+        self.make_socket()
+
         self.generate_keyset()
-        time.sleep(2)
+        time.sleep(1)
         self.public_key_share()
 
         receiver = threading.Thread(target=self.recv, args=())
