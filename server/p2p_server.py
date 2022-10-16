@@ -69,42 +69,37 @@ class Server:
         #개인키가 있으면 읽는 부분
         if os.path.isfile(self.server_pri_file):
             
-            self.server_prikey = make_key.read_pri_pem(self.server_path, self.server_name)
+            self.server_prikey = make_key.read_pri_pem(self.server_pri_file)
 
             #공개키가 있으면 삭제 후 다시 생성
             if os.path.isfile(self.server_pub_file):
 
                 os.remove(self.server_pub_file)
-                self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
+                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file, self.server_prikey)
             
             #공개키가 없으면 생성
             else:
-                self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
+                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file,self.server_prikey)
 
         #개인키가 없으면 생성 후 읽는 기능
         else:
 
-            make_key.pri_key_gen(self.server_path, self.server_name)
-            self.server_prikey = make_key.read_pri_pem(self.server_path, self.server_name)
+            make_key.pri_key_gen(self.server_pri_file)
+            self.server_prikey = make_key.read_pri_pem(self.server_pri_file)
 
             #공개키가 있으면 삭제 후 다시 생성
             if os.path.isfile(self.server_pub_file):
 
                 os.remove(self.server_pub_file)
-                self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
+                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file, self.server_prikey)
             
             #공개키가 없으면 생성
             else:
-                self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
-                make_key.save_pub_key(self.server_path, self.server_name, self.server_pubkey)
-
+                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file, self.server_prikey)
     
     def public_key_share(self):
 
-        self.client_socket.send(bytes(make_key.share_read_pub(self.server_path, self.server_name), encoding='utf-8'))
+        self.client_socket.send(bytes(make_key.share_read_pub(self.server_pub_file), encoding='utf-8'))
 
         self.client_pubkey = self.client_socket.recv(1024)
         self.client_pubkey = RSA.import_key(self.client_pubkey)
