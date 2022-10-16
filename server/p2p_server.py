@@ -27,6 +27,12 @@ class Server:
     def __init__(self):
 
         self.server_path='./server/key'
+
+        if os.path.isdir(self.server_path):
+            pass
+        else:
+            os.makedirs(self.server_path)
+
         self.server_name= str('Server')
 
         self.server_pri_file = self.server_path+'/'+self.server_name+'_prikey.pem'
