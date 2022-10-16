@@ -1,9 +1,9 @@
 '''
 @ Class Server
-@ Date 2022/10/15
+@ Date 2022/10/16
 @ Auther whitocowworkgood
 '''
-
+#----------------import ----------------------------------------------------------
 import socket
 import threading
 import random
@@ -13,15 +13,17 @@ import os
 import sys
 import shutil
 import time
-
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+import base64
+import make_key
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Cipher import PKCS1_OAEP
-import base64
-import make_key
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+#----------------END import -------------------------------------------------------
 class Server:
     
+    # Start __init__-----------------------------
     def __init__(self):
         self.data={'User':"Server"}
         self.client_name = None
@@ -30,13 +32,13 @@ class Server:
         self.server_prikey = None
         self.server_pubkey = None
 
-        
-
+        #Make Socket----------------------------------------------------
         port = random.randrange(9999, 13000)
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind(('127.0.0.1',port)) 
-        self.server_socket.listen(5) 
+        self.server_socket.listen(5)
+        #End Make Socket----------------------------------------------------
 
         print('서버 작동: 연결 포트 -> '+ str(port))
         print('연결 대기중.....')
@@ -48,72 +50,55 @@ class Server:
         #print(self.client_name)
         self.client_socket.send('server'.encode('utf-8'))
 
-
-        
+        #End __init__----------------------------------
 
     def generate_keyset(self):
-
+        
+        #개인키가 있으면 읽는 부분
         if os.path.isfile("./server/%s_prikey.pem" % ("server")):
             
             self.server_prikey = make_key.read_pri_pem('./server', "server")
 
+            #공개키가 있으면 삭제 후 다시 생성
             if os.path.isfile("./server/%s_pubkey.pem" % ("server")):
 
                 os.remove("./server/%s_pubkey.pem" % ("server"))
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
                 make_key.save_pub_key('./server', 'server', self.server_pubkey)
-
+            
+            #공개키가 없으면 생성
             else:
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
                 make_key.save_pub_key('./server', 'server', self.server_pubkey)
-       
+
+        #개인키가 없으면 생성 후 읽는 기능
         else:
             make_key.pri_key_gen('./server', "server")
             self.server_prikey = make_key.read_pri_pem('./server', "server")
 
+            #공개키가 있으면 삭제 후 다시 생성
             if os.path.isfile("./server/%s_pubkey.pem" % ("server")):
 
                 os.remove("./server/%s_pubkey.pem" % ("server"))
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
                 make_key.save_pub_key('./server', 'server', self.server_pubkey)
+            
+            #공개키가 없으면 생성
             else:
-
                 self.server_pubkey = make_key.pub_key_gen(self.server_prikey)
                 make_key.save_pub_key('./server', 'server', self.server_pubkey)
 
     
     def public_key_share(self):
         #원래는 소캣으로 해야하지만 우선 이렇게 만든다.
-        '''
-        if os.path.isfile('./server/%s_pubkey.pem' % (self.client_name)):
-            self.client_pubkey = make_key.read_pub_pem('./server', self.client_name)
-
-        else:
-            self.client_socket.send('key'.encode('utf-8'))
-            self.file_data=self.client_socket.recv(1024)
-            fd = open('./server/%s_pubkey.pem'%(self.client_name), 'wb+')
-            fd.write(bytes(self.file_data))
-            fd.close()
-
+        #print(self.server_pubkey)
         
-        if self.client_socket.recv(1024).decode('utf-8') == 'public':
-            fd=open("./server/%s_pubkey.pem" % ('server'), 'rb+')
-            
-            self.client_socket.send(str(f.read(1024)).encode('utf-8'))
-            fd.close()
-        '''
-        #임시로 공유를 하고 암복호화를 확인하기 위한 코드
-        if os.path.isfile('./server/%s_pubkey.pem'%(self.client_name)):
-           self.client_pubkey =  make_key.read_pub_pem('./server', self.client_name)
-        else:
-            filename = '%s_pubkey.pem' % (self.client_name)
-            src = './client/'
-            dir = './server/'
-            shutil.copy(src+filename, dir+filename)
 
-            time.sleep(2)
-            self.client_pubkey =  make_key.read_pub_pem('./server', self.client_name)
-    
+        self.client_socket.send(bytes(make_key.share_read_pub('./server', "server"), encoding='utf-8'))
+
+        self.client_pubkey = self.client_socket.recv(1024)
+        self.client_pubkey = RSA.import_key(self.client_pubkey)
+
     def send(self):
         
         while True:
@@ -170,7 +155,6 @@ class Server:
 
 if __name__ == '__main__':
     server = Server()
-    #server.public_key_share()
     server.run()
 
     
