@@ -27,7 +27,9 @@ def read_pub_pem(path, target):
     pubkey = RSA.import_key(open('%s/%s_pubkey.pem' % (path, target)).read())
     return pubkey
 
+def share_read_pub(path, target):
 
+    return open('%s/%s_pubkey.pem' % (path, target)).read()
 
 def encrypt_msg(pubkey, msg):
 
@@ -45,17 +47,3 @@ def decrypt_msg(prikey, cipher):
     msg_str = msg.decrypt(dec_cipher)
 
     return msg_str.decode('utf-8')
-
-if __name__ == '__main__':
-
-
-    pri_key_gen("./", "test")
-    '''
-    msg = 'HelloBlockChain'
-    
-    print("메시지: ", end='')
-    print(msg, end="\n")
-
-    cipher = encrypt_msg(msg.encode('utf-8'))
-    decrypt_msg(cipher)
-    '''
