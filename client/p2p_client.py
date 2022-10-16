@@ -32,10 +32,12 @@ class Client:
         self.client_pri_file = self.client_path+'/'+self.user+'_prikey.pem'
         self.client_pub_file = self.client_path+'/'+self.user+'_pubkey.pem'
 
-
         self.data={'User':self.user}
-        self.server_pubkey=None
+        self.server_name = None
 
+        self.client_pubkey = None
+        self.client_prikey = None
+        self.server_pubkey = None
         
         print("----------[System] Socket Start----------")
 
@@ -43,7 +45,6 @@ class Client:
         PORT = int(input("연결할 서버 포트를 입력하세요: "))
         
         self.client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
-
         self.client_socket.connect((HOST, PORT))
 
         #서로의 이름 전송
@@ -58,31 +59,27 @@ class Client:
     def generate_keyset(self):
         
         if os.path.isfile(self.client_pri_file):
-            self.client_prikey = make_key.read_pri_pem(self.client_path, self.user)
+            self.client_prikey = make_key.read_pri_pem(self.client_pri_file)
             
             if os.path.isfile(self.client_pub_file):
 
                 os.remove(self.client_pub_file)
-                self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key(self.client_path, self.user, self.client_pubkey)
+                self.client_pubkey = make_key.pub_key_gen(self.client_pub_file,self.client_prikey)
             
             else:
-                self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key(self.client_path,self.user, self.client_pubkey )
+                self.client_pubkey = make_key.pub_key_gen(self.client_pub_file,self.client_prikey)
 
         else:
-            make_key.pri_key_gen(self.client_path, self.user)
-            self.client_prikey = make_key.read_pri_pem(self.client_path, self.user)
+            make_key.pri_key_gen(self.client_pri_file)
+            self.client_prikey = make_key.read_pri_pem(self.client_pri_file)
             
             if os.path.isfile(self.client_pub_file):
 
                 os.remove(self.client_pub_file)
-                self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key(self.client_path, self.user, self.client_pubkey)
+                self.client_pubkey = make_key.pub_key_gen(self.client_pub_file, self.client_prikey)
             else:
 
-                self.client_pubkey = make_key.pub_key_gen(self.client_prikey)
-                make_key.save_pub_key(self.client_path, self.user, self.client_pubkey)
+                self.client_pubkey = make_key.pub_key_gen(self.client_pub_file, self.client_prikey)
     
     def public_key_share(self):
 
@@ -90,7 +87,7 @@ class Client:
         
         self.server_pubkey = RSA.import_key(self.server_pubkey)
 
-        self.client_socket.send(bytes(make_key.share_read_pub(self.client_path, self.user), encoding='utf-8'))
+        self.client_socket.send(bytes(make_key.share_read_pub(self.client_pub_file), encoding='utf-8'))
 
     def send(self):
         while True:
