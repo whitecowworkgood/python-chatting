@@ -2,35 +2,38 @@ from Cryptodome.PublicKey import RSA
 from Cryptodome.Cipher import PKCS1_OAEP
 import base64
 
-def pri_key_gen(path, target):
+#----------RSA키 생성----------
+def pri_key_gen(target):
     
     pri_key = RSA.generate(1024)
-    #print(type(pri_key))
-    f=open("%s/%s_prikey.pem" % (path, target), 'wb+')
+    f=open(target, 'wb+')
     f.write(pri_key.exportKey('PEM'))
-    f.close
+    f.close()
  
-def pub_key_gen(pri_key):
+def pub_key_gen(target, pri_key):
     pub_key = pri_key.public_key()
+    f=open(target, 'wb+')
+    f.write(pub_key.exportKey('PEM'))
+    f.close()
+
     return pub_key
 
-def save_pub_key(path, target, pub_key):
-    f=open("%s/%s_pubkey.pem" % (path, target), 'wb+')
-    f.write(pub_key.exportKey('PEM'))
-    f.close
-
-def read_pri_pem(path, target):
-    prikey = RSA.import_key(open('%s/%s_prikey.pem' % (path, target)).read())
+#---------PEM파일에서 키값 읽기------------
+def read_pri_pem(target):
+    prikey = RSA.import_key(open(target).read())
     return prikey
 
-def read_pub_pem(path, target):
-    pubkey = RSA.import_key(open('%s/%s_pubkey.pem' % (path, target)).read())
+def read_pub_pem(target):
+    pubkey = RSA.import_key(open(target).read())
     return pubkey
 
-def share_read_pub(path, target):
+#----------공개키 공유를 위한 따로 읽기 기능------------
+def share_read_pub(target):
 
-    return open('%s/%s_pubkey.pem' % (path, target)).read()
+    return open(target).read()
 
+
+#-------------암 복호화 부분----------------
 def encrypt_msg(pubkey, msg):
 
     cipher = PKCS1_OAEP.new(pubkey)
