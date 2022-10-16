@@ -1,6 +1,6 @@
 '''
 @ Class Server
-@ Date 2022/10/15
+@ Date 2022/10/16
 @ Auther whitocowworkgood
 '''
 #----------------import ----------------------------------------------------------
@@ -13,12 +13,12 @@ import os
 import sys
 import shutil
 import time
-
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+import base64
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Cipher import PKCS1_OAEP
-import base64
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import make_key
 #----------------END import -------------------------------------------------------
 class Server:
@@ -26,8 +26,8 @@ class Server:
     # Start __init__-----------------------------
     def __init__(self):
 
-        self.server_path='./server'
-        self.server_name= str(random.randrange(0, 1000))
+        self.server_path='./server/key'
+        self.server_name= str('Server')
 
         self.server_pri_file = self.server_path+'/'+self.server_name+'_prikey.pem'
         self.server_pub_file = self.server_path+'/'+self.server_name+'_pubkey.pem'
@@ -39,6 +39,10 @@ class Server:
         self.server_prikey = None
         self.server_pubkey = None
         
+        #End __init__----------------------------------
+
+    def make_socket(self):
+
         #Make Socket----------------------------------------------------
         port = random.randrange(9999, 13000)
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -59,9 +63,6 @@ class Server:
         #print(self.client_name)
         self.client_socket.send(self.server_name.encode('utf-8'))
 
-        #End __init__----------------------------------
-
-        
 
     def generate_keyset(self):
 
@@ -84,8 +85,7 @@ class Server:
         #개인키가 없으면 생성 후 읽는 기능
         else:
 
-            make_key.pri_key_gen(self.server_pri_file)
-            self.server_prikey = make_key.read_pri_pem(self.server_pri_file)
+            self.server_prikey = make_key.pri_key_gen(self.server_pri_file)
 
             #공개키가 있으면 삭제 후 다시 생성
             if os.path.isfile(self.server_pub_file):
@@ -150,8 +150,10 @@ class Server:
 
     def run(self):
         
+        self.make_socket()
+
         self.generate_keyset()
-        time.sleep(2)
+        time.sleep(1)
         self.public_key_share()
 
         sender = threading.Thread(target=self.send, args=())
@@ -164,5 +166,3 @@ class Server:
 if __name__ == '__main__':
     server = Server()
     server.run()
-
-    
