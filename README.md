@@ -4,8 +4,8 @@
 ----------------------------------------------
 
 message{
-'user':'',
-'message':'pub_rsa(message)',
+'user':'username',
+'message':'E(message, pub_rsa)',
 'hash':sha256(message)
 }
 형식으로 메시지 전송
