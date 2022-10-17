@@ -1,6 +1,6 @@
 '''
 @ Class Server
-@ Date 2022/10/16
+@ Date 2022/10/17
 @ Auther whitocowworkgood
 '''
 #----------------import ----------------------------------------------------------
@@ -26,24 +26,24 @@ class Server:
     # Start __init__-----------------------------
     def __init__(self):
 
-        self.server_path='./server/key'
+        self.server_key_path='./server/key'
 
-        if os.path.isdir(self.server_path):
+        if os.path.isdir(self.server_key_path):
             pass
         else:
-            os.makedirs(self.server_path)
+            os.makedirs(self.server_key_path)
 
         self.server_name= str('Server')
 
-        self.server_pri_file = self.server_path+'/'+self.server_name+'_prikey.pem'
-        self.server_pub_file = self.server_path+'/'+self.server_name+'_pubkey.pem'
+        self.server_private_key_file = self.server_key_path+'/'+self.server_name+'_prikey.pem'
+        self.server_public_key_file = self.server_key_path+'/'+self.server_name+'_pubkey.pem'
 
         self.data={'User':self.server_name}
         self.client_name = None
 
-        self.client_pubkey = None
-        self.server_prikey = None
-        self.server_pubkey = None
+        self.client_public_key = None
+        self.server_private_key = None
+        self.server_public_key = None
         
         #End __init__----------------------------------
 
@@ -74,41 +74,41 @@ class Server:
 
         
         #개인키가 있으면 읽는 부분
-        if os.path.isfile(self.server_pri_file):
+        if os.path.isfile(self.server_private_key_file):
             
-            self.server_prikey = make_key.read_pri_pem(self.server_pri_file)
+            self.server_private_key = make_key.read_pri_pem(self.server_private_key_file)
 
             #공개키가 있으면 삭제 후 다시 생성
-            if os.path.isfile(self.server_pub_file):
+            if os.path.isfile(self.server_public_key_file):
 
-                os.remove(self.server_pub_file)
-                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file, self.server_prikey)
+                os.remove(self.server_public_key_file)
+                self.server_public_key = make_key.pub_key_gen(self.server_public_key_file, self.server_private_key)
             
             #공개키가 없으면 생성
             else:
-                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file,self.server_prikey)
+                self.server_public_key = make_key.pub_key_gen(self.server_public_key_file,self.server_private_key)
 
         #개인키가 없으면 생성 후 읽는 기능
         else:
 
-            self.server_prikey = make_key.pri_key_gen(self.server_pri_file)
+            self.server_private_key = make_key.pri_key_gen(self.server_private_key_file)
 
             #공개키가 있으면 삭제 후 다시 생성
-            if os.path.isfile(self.server_pub_file):
+            if os.path.isfile(self.server_public_key_file):
 
-                os.remove(self.server_pub_file)
-                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file, self.server_prikey)
+                os.remove(self.server_public_key_file)
+                self.server_public_key = make_key.pub_key_gen(self.server_public_key_file, self.server_private_key)
             
             #공개키가 없으면 생성
             else:
-                self.server_pubkey = make_key.pub_key_gen(self.server_pub_file, self.server_prikey)
+                self.server_public_key = make_key.pub_key_gen(self.server_public_key_file, self.server_private_key)
     
     def public_key_share(self):
 
-        self.client_socket.send(bytes(make_key.share_read_pub(self.server_pub_file), encoding='utf-8'))
+        self.client_socket.send(bytes(make_key.share_read_pub(self.server_public_key_file), encoding='utf-8'))
 
-        self.client_pubkey = self.client_socket.recv(1024)
-        self.client_pubkey = RSA.import_key(self.client_pubkey)
+        self.client_public_key = self.client_socket.recv(1024)
+        self.client_public_key = RSA.import_key(self.client_public_key)
 
     def send(self):
         
@@ -118,7 +118,7 @@ class Server:
 
             if message == '/quit':
                 
-                self.data['Message'] = make_key.encrypt_msg(self.client_pubkey, message)
+                self.data['Message'] = make_key.encrypt_msg(self.client_public_key, message)
                 
                 send_data = json.dumps(self.data)
                 self.client_socket.send(send_data.encode('utf-8')) 
@@ -126,7 +126,7 @@ class Server:
                 break
             else:
 
-                self.data['Message'] =  make_key.encrypt_msg(self.client_pubkey, message)
+                self.data['Message'] =  make_key.encrypt_msg(self.client_public_key, message)
             
                 word = hashlib.sha256(message.encode('utf-8')).hexdigest()
                 self.data['Hash'] = word
@@ -141,12 +141,12 @@ class Server:
 
                 data = json.loads(self.client_socket.recv(1024).decode('utf-8'))
                 
-                if make_key.decrypt_msg(self.server_prikey, data['Message']) == '/quit':
+                if make_key.decrypt_msg(self.server_private_key, data['Message']) == '/quit':
                     print("----------[System] Recever Exit----------")
                     break
                 else:
-                    if(data['Hash'] == hashlib.sha256(make_key.decrypt_msg(self.server_prikey, data['Message']).encode('utf-8')).hexdigest()):
-                        print('%s: %s' %(data['User'],  make_key.decrypt_msg(self.server_prikey, data['Message'])))
+                    if(data['Hash'] == hashlib.sha256(make_key.decrypt_msg(self.server_private_key, data['Message']).encode('utf-8')).hexdigest()):
+                        print('%s: %s' %(data['User'],  make_key.decrypt_msg(self.server_private_key, data['Message'])))
                     else:
                         print("메시지가 변조되었습니다.")
                 
